@@ -1,0 +1,52 @@
+[
+  {
+    "id": "pos",
+    "width": 1119,
+    "height": 1104,
+    "files": {
+      "full": {
+        "file": "pos.webp",
+        "width": 1119,
+        "height": 1104,
+        "kb": 188.5
+      },
+      "lite": {
+        "file": "pos-lite.webp",
+        "width": 720,
+        "height": 710,
+        "kb": 96.1
+      },
+      "screen": {
+        "file": "pos-screen.webp",
+        "width": 872,
+        "height": 614,
+        "kb": 210.4
+      }
+    }
+  },
+  {
+    "id": "self-checkout",
+    "width": 536,
+    "height": 1471,
+    "files": {
+      "full": {
+        "file": "self-checkout.webp",
+        "width": 536,
+        "height": 1471,
+        "kb": 116.1
+      },
+      "lite": {
+        "file": "self-checkout-lite.webp",
+        "width": 525,
+        "height": 1440,
+        "kb": 112.4
+      },
+      "screen": {
+        "file": "self-checkout-screen.webp",
+        "width": 442,
+        "height": 676,
+        "kb": 123.7
+      }
+    }
+  }
+]
