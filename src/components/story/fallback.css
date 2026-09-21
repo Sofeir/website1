@@ -1,0 +1,61 @@
+.flow__hero {
+  padding-block: clamp(140px, 22vh, 260px) clamp(60px, 10vh, 120px);
+  display: grid;
+  gap: 26px;
+}
+
+.flow__product {
+  display: grid;
+  gap: clamp(32px, 5vw, 64px);
+  padding-block: clamp(60px, 9vh, 120px);
+  border-top: 1px solid var(--line);
+}
+
+@media (min-width: 1000px) {
+  .flow__product {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .flow__list {
+    grid-column: 1 / -1;
+    columns: 2;
+    column-gap: 48px;
+  }
+}
+
+.flow__head {
+  display: grid;
+  gap: 18px;
+  align-content: start;
+}
+
+.flow__link {
+  justify-self: start;
+  border-bottom: 1px solid var(--line-accent);
+  padding-bottom: 4px;
+}
+
+.flow__image {
+  width: 100%;
+  height: auto;
+  justify-self: center;
+  max-width: 520px;
+}
+
+.flow__list {
+  display: grid;
+  gap: 28px;
+}
+
+.flow__list li {
+  break-inside: avoid;
+  display: grid;
+  gap: 8px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+
+.flow__index {
+  color: var(--text-ghost);
+}

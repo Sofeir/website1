@@ -1,0 +1,105 @@
+.footer {
+  position: relative;
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  padding-top: clamp(64px, 9vh, 120px);
+}
+
+.footer__inner {
+  display: grid;
+  gap: clamp(40px, 6vw, 80px);
+  position: relative;
+  z-index: 1;
+}
+
+@media (min-width: 900px) {
+  .footer__inner {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.4fr);
+    align-items: start;
+  }
+}
+
+.footer__brand {
+  display: grid;
+  gap: 22px;
+  justify-items: start;
+}
+
+.footer__emblem {
+  width: 56px;
+  height: 56px;
+}
+
+.footer__claim {
+  color: var(--text-dim);
+  font-size: 1.03125rem;
+  line-height: 1.6;
+}
+
+.footer__cols {
+  display: grid;
+  gap: 36px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+}
+
+.footer__cols .kicker {
+  margin-bottom: 18px;
+}
+
+.footer__cols ul {
+  display: grid;
+  gap: 10px;
+}
+
+.footer__cols a {
+  color: var(--text-dim);
+  font-size: 1.03125rem;
+  transition: color var(--dur-fast) var(--ease);
+}
+
+.footer__cols a:hover {
+  color: var(--text);
+}
+
+.footer__hours {
+  color: var(--text-faint);
+  font-size: 1.03125rem;
+}
+
+.footer__bottom {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  justify-content: space-between;
+  padding-top: clamp(48px, 7vh, 90px);
+  padding-bottom: 28px;
+  color: var(--text-faint);
+  font-size: var(--micro);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.footer__placeholder {
+  color: var(--text-ghost);
+  font-size: var(--micro);
+  letter-spacing: 0.1em;
+  text-transform: none;
+}
+
+/* Знак на фоне подвала: крупная подпись сцены, а не второй логотип. */
+.footer__watermark {
+  position: absolute;
+  right: -6%;
+  bottom: -28%;
+  width: min(52vw, 620px);
+  opacity: 0.03;
+  pointer-events: none;
+  filter: grayscale(1);
+}
+
+.footer__watermark img {
+  width: 100%;
+  height: auto;
+}

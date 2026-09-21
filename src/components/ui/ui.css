@@ -1,0 +1,157 @@
+/* Общие элементы интерфейса: заголовки секций, ссылки-действия, карточки, списки. */
+
+.section-head__meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.section-head__index {
+  color: var(--accent);
+}
+
+.arrowlink {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 26px;
+  border-radius: var(--r-pill);
+  font-size: 1.03125rem;
+  letter-spacing: -0.01em;
+  border: 1px solid var(--line-strong);
+  transition:
+    border-color var(--dur-fast) var(--ease),
+    background var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+
+.arrowlink__icon {
+  transition: transform var(--dur) var(--ease);
+}
+
+.arrowlink:hover {
+  border-color: var(--line-accent);
+  background: var(--brand-deep-soft);
+}
+
+.arrowlink:hover .arrowlink__icon {
+  transform: translate(3px, -3px);
+}
+
+/* Главное действие: брендовый зелёный, а не белая плашка — на почти чёрном
+   фоне белая кнопка перетягивает на себя весь кадр. */
+.arrowlink--solid {
+  background: var(--btn);
+  color: var(--btn-ink);
+  border-color: var(--btn);
+  font-weight: 600;
+}
+
+.arrowlink--solid:hover {
+  background: var(--btn-hover);
+  border-color: var(--btn-hover);
+  color: var(--btn-ink);
+}
+
+.arrowlink--ghost {
+  border-color: transparent;
+  padding-inline: 0;
+}
+
+.arrowlink--ghost:hover {
+  background: transparent;
+  color: var(--accent);
+}
+
+/* Карточка: подсветка краёв и тонкий сдвиг — без масштабирования и свечения. */
+.card {
+  position: relative;
+  display: grid;
+  gap: 14px;
+  padding: clamp(24px, 2.4vw, 36px);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  transition:
+    border-color var(--dur) var(--ease),
+    transform var(--dur) var(--ease),
+    background var(--dur) var(--ease);
+}
+
+.card:hover {
+  border-color: var(--line-strong);
+  transform: translateY(-3px);
+  background: var(--surface-2);
+}
+
+.card__index {
+  font-family: var(--mono);
+  font-size: var(--micro);
+  letter-spacing: 0.18em;
+  color: var(--text-ghost);
+  transition: color var(--dur) var(--ease);
+}
+
+.card:hover .card__index {
+  color: var(--accent);
+}
+
+.card__title {
+  font-size: clamp(1.05rem, 1.3vw, 1.3rem);
+  letter-spacing: -0.009em;
+  font-weight: 500;
+}
+
+.card__text {
+  color: var(--text-dim);
+  font-size: 1.03125rem;
+  line-height: 1.62;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  border: 1px solid var(--line);
+  border-radius: var(--r-pill);
+  padding: 5px 10px;
+}
+
+/* Строчный список «ключ — значение» с линиями, как в технической спецификации. */
+.speclist {
+  display: grid;
+}
+
+.speclist li,
+.speclist > div {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 24px;
+  padding-block: 18px;
+  border-top: 1px solid var(--line);
+  font-size: 1.03125rem;
+}
+
+.speclist li:last-child,
+.speclist > div:last-child {
+  border-bottom: 1px solid var(--line);
+}
+
+.speclist dd {
+  margin: 0;
+}
+
+.speclist dt,
+.speclist .speclist__label {
+  color: var(--text-faint);
+}

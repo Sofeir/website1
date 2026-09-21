@@ -1,0 +1,438 @@
+/**
+ * Раскладка интерактивной сцены.
+ *
+ * Высота секции задаёт длину повествования. На каждую главу приходится около
+ * 130vh прокрутки, из них большая часть — удержание, когда кадр почти неподвижен
+ * и текст читается. Меньше делать нельзя: одно движение колеса перепрыгивало бы
+ * через этап.
+ */
+.story {
+  position: relative;
+  height: 1600vh;
+  background: var(--bg);
+}
+
+.story__viewport {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  height: 100svh;
+  overflow: hidden;
+}
+
+.story__canvas {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transition: opacity 1.2s var(--ease);
+}
+
+.story__canvasel {
+  width: 100%;
+  height: 100%;
+}
+
+.story.is-ready .story__canvas {
+  opacity: 1;
+}
+
+.story__overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.story__overlay > * {
+  pointer-events: auto;
+}
+
+/* ─── Герой ───────────────────────────────────────────────────────────────── */
+
+.story__hero {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  max-width: var(--maxw);
+  margin-inline: auto;
+  /* Кегль в герое крупный, поэтому вертикальные отступы «дышат» вместе с
+     высотой окна: на невысоком экране блок сжимается, а не лезет под шапку. */
+  padding: clamp(100px, 13vh, 132px) var(--gutter) clamp(52px, 8vh, 88px);
+  padding-left: calc(var(--gutter) + 10px);
+  will-change: transform, opacity;
+}
+
+.story__herotext {
+  max-width: min(54%, 780px);
+}
+
+/* Между 1200 и 1600 оборудование подходит к тексту вплотную: колонка ужимается,
+   чтобы строки не упирались в POS. */
+@media (min-width: 1201px) and (max-width: 1600px) {
+  .story__herotext {
+    max-width: min(50%, 660px);
+  }
+}
+
+/* Кадр ближе к квадрату — колонка уже, иначе строки упираются в оборудование. */
+@media (max-width: 1200px) {
+  .story__herotext {
+    max-width: min(56%, 560px);
+  }
+
+  .chapter {
+    width: min(38vw, 360px);
+  }
+}
+
+.story__eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: clamp(14px, 2.4vh, 26px);
+}
+
+.story__eyebrow::before {
+  content: '';
+  width: 28px;
+  height: 1px;
+  background: var(--accent);
+}
+
+.story__title {
+  margin-bottom: clamp(16px, 2.8vh, 28px);
+}
+
+.story__lead {
+  max-width: 42ch;
+}
+
+.story__choice {
+  display: grid;
+  gap: 10px;
+  margin-top: clamp(18px, 3.4vh, 44px);
+  max-width: 440px;
+}
+
+.choice {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 15px 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  text-align: left;
+  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+.choice:hover,
+.choice:focus-visible {
+  background: var(--surface-2);
+  border-color: var(--line-accent);
+  transform: translateX(4px);
+}
+
+.choice__index {
+  color: var(--text-ghost);
+  padding-left: 4px;
+  transition: color var(--dur) var(--ease);
+}
+
+.choice:hover .choice__index {
+  color: var(--accent);
+}
+
+.choice__body {
+  display: grid;
+  gap: 2px;
+}
+
+.choice__name {
+  font-size: clamp(1.05rem, 1.35vw, 1.35rem);
+  letter-spacing: -0.009em;
+}
+
+.choice__note {
+  font-size: var(--small);
+  color: var(--text-faint);
+}
+
+.choice__arrow {
+  color: var(--text-faint);
+  padding-right: 4px;
+  transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
+}
+
+.choice:hover .choice__arrow {
+  transform: translateY(4px);
+  color: var(--text);
+}
+
+.story__scrollhint {
+  position: absolute;
+  right: calc(var(--gutter) + 40px);
+  bottom: 40px;
+  color: var(--text-faint);
+  font-size: var(--micro);
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+}
+
+/* ─── Главы ───────────────────────────────────────────────────────────────── */
+
+.story__chapters {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.chapter {
+  position: absolute;
+  top: 50%;
+  width: min(34vw, 460px);
+  transform: translateY(-50%);
+  will-change: transform, opacity;
+}
+
+.chapter[data-side='left'] {
+  left: max(var(--gutter), calc((100vw - var(--maxw)) / 2 + var(--gutter)));
+  margin-top: -2vh;
+}
+
+.chapter[data-side='right'] {
+  right: max(var(--gutter), calc((100vw - var(--maxw)) / 2 + var(--gutter)));
+  text-align: right;
+  margin-top: -2vh;
+}
+
+/* С 1200px справа появляется индикатор глав — правая колонка уходит от него,
+   иначе строки набегают на цифры. */
+@media (min-width: 1200px) {
+  .chapter[data-side='right'] {
+    right: calc(max(var(--gutter), (100vw - var(--maxw)) / 2 + var(--gutter)) + 54px);
+  }
+}
+
+.chapter__meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-faint);
+  font-size: var(--micro);
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  margin-bottom: 14px;
+}
+
+.chapter[data-side='right'] .chapter__meta {
+  justify-content: flex-end;
+}
+
+.chapter__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--brand-deep);
+}
+
+/* Номер главы — подпись рядом с названием продукта, а не плакатная цифра:
+   в кадре должен быть виден продукт, а не разметка. */
+.chapter__index {
+  font-size: var(--micro);
+  letter-spacing: 0.15em;
+  color: var(--text-ghost);
+  margin-bottom: 14px;
+}
+
+.chapter__title {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 2.6vw, 2.65rem);
+  line-height: 1.12;
+  letter-spacing: -0.012em;
+  font-weight: 800;
+  margin-bottom: 20px;
+}
+
+.chapter__text {
+  color: var(--text-dim);
+  font-size: clamp(1.05rem, 1.2vw, 1.25rem);
+  line-height: 1.68;
+  letter-spacing: -0.002em;
+  max-width: 38ch;
+}
+
+.chapter[data-side='right'] .chapter__text {
+  margin-left: auto;
+}
+
+/* ─── Индикатор прогресса ─────────────────────────────────────────────────── */
+
+.story__rail {
+  position: absolute;
+  right: calc(var(--gutter) * 0.55);
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  grid-template-columns: 1px auto;
+  gap: 14px;
+  align-items: stretch;
+  height: min(46vh, 380px);
+}
+
+@media (min-width: 1200px) {
+  .story__rail {
+    display: grid;
+  }
+}
+
+.story__railtrack {
+  position: relative;
+  width: 1px;
+  background: var(--line);
+}
+
+.story__railfill {
+  position: absolute;
+  inset: 0;
+  background: var(--brand-deep);
+  transform-origin: top;
+  transform: scaleY(0);
+}
+
+.story__marks {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.story__mark {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--text-ghost);
+  transition: color var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+
+.story__mark.is-active {
+  color: var(--text);
+  transform: translateX(3px);
+}
+
+.story__mark[data-product='self-checkout'] {
+  padding-left: 8px;
+}
+
+/* ─── Финал сцены ─────────────────────────────────────────────────────────── */
+
+/* Блок растянут на весь кадр и центрирует содержимое сеткой, а не сдвигом:
+   прокрутка пишет в него собственный transform и любой translate(-50%) здесь
+   был бы затёрт — именно поэтому финальный текст уезжал вправо. */
+.story__outro {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 26px;
+  padding-inline: var(--gutter);
+  text-align: center;
+  will-change: transform, opacity;
+}
+
+/* Это последний кадр сцены, в нём больше ничего нет — кегль держит экран. */
+.story__outrotext {
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3.4vw, 3.4rem);
+  line-height: 1.12;
+  letter-spacing: -0.016em;
+  font-weight: 800;
+  color: var(--text);
+  max-width: 26ch;
+}
+
+.story__outrolinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.story__outrolink {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 28px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-pill);
+  font-size: 1.03125rem;
+  transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+
+.story__outrolink:hover {
+  border-color: var(--line-accent);
+  background: var(--brand-deep-soft);
+}
+
+/* ─── Мобильная раскладка ─────────────────────────────────────────────────── */
+
+@media (max-width: 900px) {
+  .story {
+    height: 1400vh;
+  }
+
+  /* Телефон: оборудование сверху, текст снизу — та же логика, что в главах. */
+  .story__hero {
+    align-content: end;
+    padding: 96px var(--gutter) 40px;
+  }
+
+  .story__herotext {
+    max-width: 100%;
+  }
+
+  .story__lead {
+    font-size: 0.95rem;
+  }
+
+  .story__choice {
+    max-width: 100%;
+  }
+
+  .story__scrollhint,
+  .story__eyebrow {
+    display: none;
+  }
+
+  .chapter,
+  .chapter[data-side='left'],
+  .chapter[data-side='right'] {
+    top: auto;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    margin: 0;
+    text-align: left;
+    transform: none;
+    padding: 96px var(--gutter) 44px;
+    background: linear-gradient(180deg, transparent, rgba(20, 22, 24, 0.92) 42%, var(--bg));
+  }
+
+  .chapter[data-side='right'] .chapter__meta {
+    justify-content: flex-start;
+  }
+
+  .chapter[data-side='right'] .chapter__text {
+    margin-left: 0;
+  }
+
+  .chapter__index {
+    font-size: var(--micro);
+  }
+
+  .chapter__text {
+    max-width: 100%;
+  }
+}

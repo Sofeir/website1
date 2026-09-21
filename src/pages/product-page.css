@@ -1,0 +1,174 @@
+/* Страница продукта. Спокойная вертикаль: тот же язык, что на главной, без сцены. */
+
+.product__hero {
+  padding-block: clamp(140px, 20vh, 240px) clamp(48px, 8vh, 96px);
+  background:
+    radial-gradient(70% 90% at 78% 30%, rgba(47, 191, 148, 0.09), transparent 62%),
+    var(--bg);
+}
+
+.product__heroinner {
+  display: grid;
+  gap: clamp(36px, 5vw, 72px);
+  align-items: center;
+}
+
+@media (min-width: 980px) {
+  .product__heroinner {
+    grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.9fr);
+  }
+}
+
+.product__herotext {
+  display: grid;
+  gap: 24px;
+  align-content: start;
+}
+
+.product__crumbs {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.product__crumbs a:hover {
+  color: var(--accent);
+}
+
+.product__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.product__heromedia {
+  display: grid;
+  place-items: center;
+}
+
+.product__heromedia img {
+  width: auto;
+  max-width: 100%;
+  max-height: min(58vh, 560px);
+  height: auto;
+  object-fit: contain;
+}
+
+.product__section {
+  padding-block: clamp(64px, 9vh, 130px);
+}
+
+.product__section--raise {
+  background: linear-gradient(180deg, var(--bg), var(--bg-raise) 45%, var(--bg));
+  border-block: 1px solid var(--line);
+}
+
+.product__split {
+  display: grid;
+  gap: clamp(28px, 4vw, 72px);
+}
+
+@media (min-width: 900px) {
+  .product__split {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    align-items: start;
+  }
+
+  .product__sticky {
+    position: sticky;
+    top: 120px;
+    display: grid;
+    gap: 16px;
+    align-content: start;
+  }
+}
+
+.product__softwarehead {
+  display: grid;
+  gap: 18px;
+  margin-bottom: clamp(32px, 5vh, 64px);
+  max-width: 70ch;
+}
+
+.product__software {
+  position: relative;
+  max-width: 1180px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: linear-gradient(160deg, var(--surface-2), var(--bg));
+  padding: clamp(16px, 2vw, 32px);
+  overflow: hidden;
+}
+
+.product__software img {
+  width: 100%;
+  height: auto;
+  border-radius: var(--r-md);
+}
+
+.product__features {
+  display: grid;
+  gap: clamp(14px, 1.4vw, 20px);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  margin-top: clamp(32px, 5vh, 56px);
+}
+
+.product__scenarios {
+  display: grid;
+  gap: 1px;
+  background: var(--line);
+  border-block: 1px solid var(--line);
+  margin-top: clamp(32px, 5vh, 56px);
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+}
+
+.product__scenarios li {
+  background: var(--bg);
+  padding: clamp(24px, 2.4vw, 36px);
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+.product__service {
+  display: grid;
+  gap: 26px;
+}
+
+.product__disclaimer {
+  color: var(--text-ghost);
+  font-size: var(--micro);
+  letter-spacing: 0.08em;
+  line-height: 1.6;
+}
+
+.product__next {
+  padding-block: 0;
+  border-top: 1px solid var(--line);
+}
+
+.product__nextlink {
+  display: grid;
+  gap: 10px;
+  padding-block: clamp(48px, 8vh, 110px);
+  position: relative;
+  transition: color var(--dur) var(--ease);
+}
+
+.product__nextlink:hover {
+  color: var(--accent);
+}
+
+.product__nextarrow {
+  position: absolute;
+  right: var(--gutter);
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: clamp(1.5rem, 3vw, 2.5rem);
+  transition: transform var(--dur) var(--ease);
+}
+
+.product__nextlink:hover .product__nextarrow {
+  transform: translate(6px, calc(-50% - 6px));
+}
