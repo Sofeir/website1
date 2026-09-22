@@ -46,12 +46,12 @@ export function startSmoothScroll() {
   if (lenis || prefersReducedMotion()) return null;
 
   lenis = new Lenis({
-    duration: 1.8,
-    easing: (t) => 1 - Math.pow(1 - t, 3),
+    duration: 2.4,
+    easing: (t) => 1 - Math.pow(1 - t, 4),
     smoothWheel: true,
     // Колесо у разных мышей даёт разный delta; множитель ниже единицы
     // выравнивает шаг и не даёт одним движением перескочить сцену.
-    wheelMultiplier: 0.45,
+    wheelMultiplier: 0.3,
     touchMultiplier: 1.4,
   });
 
