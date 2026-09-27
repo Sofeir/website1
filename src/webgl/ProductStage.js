@@ -263,7 +263,11 @@ export class ProductStage {
     // POS вчетверо ниже киоска (424 мм против 1536). Честная доля превратила бы
     // его в мелочь, поэтому разницу сжимаем степенью 0,45: рост читается, но
     // настольная касса остаётся видимой машиной, а не деталью у ножки.
-    const heroBase = narrow ? 0.19 : 0.74;
+    // На телефоне оборудование живёт в полосе между шапкой и текстовой
+    // колонкой — примерно 110…340 px из 812. Доля кадра и высота подобраны
+    // так, чтобы машины целиком попадали в эту полосу и не лезли ни под
+    // логотип, ни под заголовок.
+    const heroBase = narrow ? 0.24 : 0.74;
     const heroFit = (product) =>
       heroBase * ((this.items.get(product.id)?.height ?? tallest) / tallest) ** 0.45;
 
@@ -274,7 +278,7 @@ export class ProductStage {
       items: Object.fromEntries(
         this.products.map((product, index) => {
           const fit = heroFit(product);
-          const baseY = narrow ? 0.58 : -0.05;
+          const baseY = narrow ? 0.39 : -0.05;
           return [
             product.id,
             state({
@@ -334,15 +338,17 @@ export class ProductStage {
           items: target(),
         });
 
-        // Конец удержания: кадр за это время едва дышал — доллинг на пару
-        // процентов и микроповорот. Дальше идёт переход к следующей главе.
+        // Конец удержания. Кадр здесь стоит ровно — ни доллинга, ни поворота.
+        // Раньше на этом отрезке была микроанимация на 3,5 % зума, и режиссёр,
+        // проскакивая удержание в начале перехода, применял её за один кадр:
+        // получался рывок перед плавным движением.
         frames.push({
           weight: WEIGHT_MOVE,
           key: `${chapter.id}-hold`,
           productId: product.id,
           role: 'hold',
           glow: [0.5 - camera.x * 0.2, 0.52 - camera.y * 0.18],
-          items: target({ fitScale: 1.035, yaw: 0.025 }),
+          items: target(),
         });
       });
 
@@ -406,16 +412,18 @@ export class ProductStage {
       weight: 1,
       key: 'outro-hold',
       glow: [0.5, 0.48],
-      items: outroItems({ y: -0.02, fit: narrow ? 0.3 : 0.62, opacity: 1, glow: 1 }),
+      items: outroItems({ y: -0.02, fit: narrow ? 0.27 : 0.56, opacity: 1, glow: 1 }),
     });
 
     frames.push({
       weight: 1.1,
       key: 'outro',
-      glow: [0.5, 0.1],
-      // Наезд, а не отъезд: машины уходят вверх мимо камеры и вырастают,
-      // одновременно угасая. Уменьшение читалось бы как «их уносит вдаль».
-      items: outroItems({ y: 1.05, fit: narrow ? 0.62 : 1.18, opacity: 0, glow: 0, pitch: -0.06 }),
+      glow: [0.5, 0.22],
+      // Наезд, а не отъезд: машины уходят вверх мимо камеры и вырастают.
+      // Прозрачность не трогаем — они не растворяются, а физически покидают
+      // кадр. Поэтому `y` берём с запасом: объект высотой в `fit` долей высоты кадра,
+      // значит уйти он должен минимум на 1 + fit, иначе низ останется в кадре.
+      items: outroItems({ y: narrow ? 1.75 : 2.05, fit: narrow ? 0.46 : 0.88, opacity: 1, glow: 0, pitch: -0.06 }),
     });
 
     const total = frames.reduce((sum, frame) => sum + frame.weight, 0);

@@ -26,6 +26,8 @@ const DURATION = 1.15; // с
 const GESTURE_GAP = 170; // мс тишины колеса — значит, начался новый жест
 const WHEEL_MIN = 4; // шум тачпада меньше этого не считается командой
 const SWIPE_MIN = 42; // px
+// Доля времени перехода на мёртвый отрезок удержания, где кадр неподвижен.
+const DEAD_SHARE = 0.16;
 
 const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
@@ -72,17 +74,54 @@ export function createDirector({ stations, box, onProgress }) {
     onProgress(progress);
   };
 
+  /**
+   * Путь перехода — ломаная по прогрессу с долей времени на каждое звено.
+   *
+   * Между приходом главы и концом её удержания кадр стоит: этот отрезок
+   * прогресса ничего не показывает, но занимает заметную часть шкалы. Раньше
+   * режиссёр перескакивал его мгновенно — прогресс прыгал, и переход начинался
+   * с рывка. Теперь отрезок проходится анимацией, но за малую долю времени:
+   * кадр там неподвижен, так что скорость на нём не видна, а разрыва нет.
+   */
+  const pathTo = (target, forward) => {
+    const here = progress;
+    const dead = forward ? stations[index].leave : stations[target].leave;
+    const end = stations[target].p;
+    if (dead == null) return [[here, end, 1]];
+    return forward
+      ? [
+          [here, dead, DEAD_SHARE],
+          [dead, end, 1 - DEAD_SHARE],
+        ]
+      : [
+          [here, dead, 1 - DEAD_SHARE],
+          [dead, end, DEAD_SHARE],
+        ];
+  };
+
   const start = (target, time = duration) => {
     if (target === index || target < 0 || target >= stations.length) return false;
     const forward = target > index;
-    const from = forward ? stations[index].leave ?? stations[index].p : stations[index].p;
-    const to = forward ? stations[target].p : stations[target].leave ?? stations[target].p;
-    anim = { from, to, target, elapsed: 0, time, settle: stations[target].p };
+    // Никакого перескока: анимация начинается ровно с текущего прогресса,
+    // поэтому первый же кадр перехода продолжает предыдущее положение.
+    anim = { path: pathTo(target, forward), elapsed: 0, time, settle: stations[target].p };
     index = target;
     mode = 'story';
-    // Кадр на удержании неподвижен, так что перескок к его концу незаметен.
-    setProgress(from);
     return true;
+  };
+
+  /** Прогресс по ломаной: `u` — сглаженное время 0..1. */
+  const along = (path, u) => {
+    let acc = 0;
+    for (const [from, to, share] of path) {
+      if (u <= acc + share || share === 0) {
+        const local = share === 0 ? 1 : (u - acc) / share;
+        return from + (to - from) * clamp(local, 0, 1);
+      }
+      acc += share;
+    }
+    const last = path[path.length - 1];
+    return last[1];
   };
 
   /** Шаг по команде. false — дальше остановок нет, жест отдаём странице. */
@@ -178,6 +217,10 @@ export function createDirector({ stations, box, onProgress }) {
     const atEdge = !anim && ((direction > 0 && index === stations.length - 1) || (direction < 0 && index === 0));
     if (atEdge) return;
     event.preventDefault();
+    // Гасим событие до Lenis, как и колесо. Иначе палец одновременно и
+    // запускает переход у режиссёра, и тянет инерционную прокрутку — сцена
+    // дёргается между двумя хозяевами. Сравни с onWheel: там ровно то же.
+    event.stopImmediatePropagation();
   };
   const onTouchEnd = (event) => {
     if (touchY == null) return;
@@ -204,8 +247,7 @@ export function createDirector({ stations, box, onProgress }) {
   const tick = (delta) => {
     if (anim) {
       anim.elapsed = Math.min(anim.elapsed + delta, anim.time);
-      const t = easeInOutCubic(anim.elapsed / anim.time);
-      const value = anim.from + (anim.to - anim.from) * t;
+      const value = along(anim.path, easeInOutCubic(anim.elapsed / anim.time));
       setProgress(value);
       syncScroll(offsetOf(value));
       if (anim.elapsed >= anim.time) {
@@ -247,7 +289,12 @@ export function createDirector({ stations, box, onProgress }) {
       if (now - externalSince > 180) {
         const target = nearest(live);
         index = target;
-        anim = { from: live, to: stations[target].p, target, elapsed: 0, time: 0.45, settle: stations[target].p };
+        anim = {
+          path: [[live, stations[target].p, 1]],
+          elapsed: 0,
+          time: 0.45,
+          settle: stations[target].p,
+        };
       }
     }
   };

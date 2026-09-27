@@ -96,9 +96,12 @@ export default function ProductStory() {
 
       const outro = outroRef.current;
       if (outro) {
-        const k = smoothstep(outroStart + 0.02, 0.99, progress);
+        // Одна параллельная сцена: оборудование уезжает вверх за край кадра,
+        // текст в это же время поднимается снизу. Границы совпадают с отрезком
+        // ухода моделей, поэтому движения идут синхронно, а не друг за другом.
+        const k = smoothstep(outroStart, 1, progress);
         outro.style.opacity = String(k);
-        outro.style.transform = `translate3d(0, ${(1 - k) * 24}px, 0)`;
+        outro.style.transform = `translate3d(0, ${(1 - k) * 96}px, 0)`;
         outro.style.pointerEvents = k > 0.6 ? 'auto' : 'none';
         outro.style.visibility = k < 0.01 ? 'hidden' : 'visible';
       }

@@ -447,3 +447,80 @@
     max-width: 100%;
   }
 }
+
+/* ─── Телефон ──────────────────────────────────────────────────────────────
+   Отдельный режим, а не уменьшенный десктоп. Главная задача — развести по
+   высоте три слоя первого экрана: шапку, оборудование и текстовую колонку.
+   Сцена рисует оборудование в верхней трети кадра (см. narrow в
+   ProductStage.js), поэтому текст здесь должен занимать заметно меньше места,
+   чем на планшете, иначе модели и заголовок наезжают друг на друга. */
+
+@media (max-width: 560px) {
+  .story__hero {
+    padding: 72px var(--gutter) 28px;
+  }
+
+  .story__hero .story__title {
+    font-size: clamp(1.95rem, 8.6vw, 2.5rem);
+    margin-bottom: 12px;
+  }
+
+  .story__lead {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    max-width: 100%;
+  }
+
+  .story__choice {
+    margin-top: 18px;
+    gap: 8px;
+  }
+
+  /* Плитка остаётся крупной мишенью для пальца: по высоте выходит около 64 px
+     при рекомендованном минимуме в 44. Ужимаем только внутренние отступы. */
+  .story__choice .choice {
+    gap: 12px;
+    padding: 12px 14px;
+  }
+
+  .choice__name {
+    font-size: 0.98rem;
+  }
+
+  .choice__note {
+    font-size: 0.8rem;
+  }
+
+  .chapter,
+  .chapter[data-side='left'],
+  .chapter[data-side='right'] {
+    padding: 72px var(--gutter) 32px;
+  }
+
+  .chapter__title {
+    font-size: clamp(1.7rem, 7.6vw, 2.2rem);
+  }
+
+  .chapter__text {
+    font-size: 0.9rem;
+  }
+
+  .story__outro {
+    padding: 72px var(--gutter) 40px;
+  }
+
+  .story__outrotext {
+    font-size: clamp(1.45rem, 6.6vw, 1.9rem);
+  }
+
+  /* Кнопки финала в столбик: рядом они не помещаются и жмутся до нечитаемого. */
+  .story__outrolinks {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .story__outrolink {
+    justify-content: center;
+  }
+}

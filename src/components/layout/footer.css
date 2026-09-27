@@ -118,3 +118,21 @@
   color: var(--text);
   border-bottom-color: var(--line-strong);
 }
+
+
+/* ─── Телефон ──────────────────────────────────────────────────────────────
+   Ссылки в подвале набраны мелко, и по высоте строки палец в них не попадает.
+   Увеличиваем зону нажатия отступами, не трогая размер самого текста. */
+
+@media (max-width: 560px) {
+  .footer__cols a,
+  .footer__motion {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+  }
+
+  .footer__cols li + li {
+    margin-top: 2px;
+  }
+}
