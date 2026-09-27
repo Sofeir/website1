@@ -42,21 +42,26 @@ export async function createWordmarkTexture() {
   await fontsReady();
 
   const { CanvasTexture } = await import('three');
+  // Холст вчетверо крупнее прежнего: надпись на корпусе занимает в кадре
+  // сайта всего десятки пикселей, и на 512 × 128 буквы приходили в сцену уже
+  // рассыпанными. Кегль и трекинг подняты во столько же раз — рисунок тот же.
   const canvas = document.createElement('canvas');
-  canvas.width = 512;
-  canvas.height = 128;
+  canvas.width = 2048;
+  canvas.height = 512;
   const ctx = canvas.getContext('2d');
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  ctx.font = '600 56px "Montserrat", system-ui, sans-serif';
-  ctx.fillStyle = 'rgba(206, 212, 216, 0.9)';
+  ctx.font = '600 224px "Montserrat", system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(232, 238, 242, 0.98)';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-  ctx.letterSpacing = '14px';
-  ctx.fillText('ASOFT', canvas.width / 2 + 7, canvas.height / 2);
+  ctx.letterSpacing = '40px';
+  ctx.fillText('ASOFT', canvas.width / 2 + 20, canvas.height / 2);
 
   const texture = new CanvasTexture(canvas);
   texture.colorSpace = SRGBColorSpace;
-  texture.anisotropy = 4;
+  texture.generateMipmaps = true;
+  texture.minFilter = LinearMipmapLinearFilter;
+  texture.anisotropy = 16;
   return texture;
 }

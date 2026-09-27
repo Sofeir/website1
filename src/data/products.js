@@ -1,3 +1,4 @@
+import { asset } from '../lib/asset.js';
 /**
  * Конфигурация Product Story Engine.
  *
@@ -21,9 +22,9 @@ export const products = [
       /** Какую модель собирает движок сцены (см. webgl/models.js). */
       model: 'pos',
       /** Заставка дисплея — вырезана из студийного снимка этой же машины. */
-      screen: '/products/pos-screen.webp',
+      screen: asset('products/pos-screen.webp'),
       /** Изображение того же оборудования для секций вне 3D-сцены. */
-      still: '/products/pos.webp',
+      still: asset('products/pos.webp'),
       accent: '#2fbf94',
     },
 
@@ -126,8 +127,8 @@ export const products = [
 
     scene: {
       model: 'self-checkout',
-      screen: '/products/self-checkout-screen.webp',
-      still: '/products/self-checkout.webp',
+      screen: asset('products/self-checkout-screen.webp'),
+      still: asset('products/self-checkout.webp'),
       accent: '#2fbf94',
     },
 

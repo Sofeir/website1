@@ -115,6 +115,9 @@
 }
 
 .choice {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
@@ -124,15 +127,14 @@
   border-radius: var(--r-lg);
   background: var(--surface);
   text-align: left;
-  transition: border-color var(--dur) var(--ease), background var(--dur) var(--ease),
-    transform var(--dur) var(--ease);
+  transition: border-color var(--dur) var(--ease), transform var(--dur) var(--ease);
 }
 
+/* Наведение — мягкий ореол по контуру карточки, без заливки и сдвига. */
 .choice:hover,
 .choice:focus-visible {
-  background: var(--surface-2);
   border-color: var(--line-accent);
-  transform: translateX(4px);
+  box-shadow: 0 0 20px -4px var(--brand-deep-soft);
 }
 
 .choice__index {
@@ -141,7 +143,8 @@
   transition: color var(--dur) var(--ease);
 }
 
-.choice:hover .choice__index {
+.choice:hover .choice__index,
+.choice:focus-visible .choice__index {
   color: var(--accent);
 }
 
@@ -166,9 +169,10 @@
   transition: transform var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
-.choice:hover .choice__arrow {
-  transform: translateY(4px);
-  color: var(--text);
+.choice:hover .choice__arrow,
+.choice:focus-visible .choice__arrow {
+  transform: translateY(5px);
+  color: var(--btn);
 }
 
 .story__scrollhint {
@@ -360,6 +364,9 @@
 }
 
 .story__outrolink {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   gap: 10px;
@@ -367,13 +374,17 @@
   border: 1px solid var(--line-strong);
   border-radius: var(--r-pill);
   font-size: 1.03125rem;
-  transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+  transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 
-.story__outrolink:hover {
-  border-color: var(--line-accent);
-  background: var(--brand-deep-soft);
+
+.story__outrolink:hover,
+.story__outrolink:focus-visible {
+  border-color: var(--btn);
+  color: var(--btn);
+  box-shadow: 0 0 20px -3px var(--brand-deep-soft);
 }
+
 
 /* ─── Мобильная раскладка ─────────────────────────────────────────────────── */
 

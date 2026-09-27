@@ -803,6 +803,9 @@
 }
 
 .form__submit {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -813,17 +816,22 @@
   color: var(--btn-ink);
   font-size: 1rem;
   font-weight: 600;
-  transition: background var(--dur-fast) var(--ease), opacity var(--dur-fast) var(--ease);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+    opacity var(--dur-fast) var(--ease);
 }
+
+/* Блик пробегает по кнопке — вместо простого осветления фона. */
 
 .form__submit:disabled {
   opacity: 0.55;
   cursor: progress;
 }
 
-.form__submit:hover:not(:disabled) {
-  background: var(--btn-hover);
+.form__submit:hover:not(:disabled),
+.form__submit:focus-visible:not(:disabled) {
+  box-shadow: 0 0 24px -4px var(--btn);
 }
+
 
 .form__icon {
   transition: transform var(--dur) var(--ease);

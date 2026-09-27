@@ -18,9 +18,9 @@
       },
       "screen": {
         "file": "pos-screen.webp",
-        "width": 872,
-        "height": 614,
-        "kb": 210.4
+        "width": 854,
+        "height": 612,
+        "kb": 266.9
       }
     }
   },
@@ -45,7 +45,7 @@
         "file": "self-checkout-screen.webp",
         "width": 442,
         "height": 676,
-        "kb": 123.7
+        "kb": 156.9
       }
     }
   }

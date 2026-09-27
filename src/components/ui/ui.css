@@ -11,7 +11,12 @@
   color: var(--accent);
 }
 
+/* Наведение: не «стало светлее», а заливка, которая поднимается снизу.
+   Текст переходит на тёмный, стрелка уезжает по своей диагонали. */
 .arrowlink {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: inline-flex;
   align-items: center;
   gap: 12px;
@@ -21,47 +26,85 @@
   letter-spacing: -0.01em;
   border: 1px solid var(--line-strong);
   transition:
-    border-color var(--dur-fast) var(--ease),
-    background var(--dur-fast) var(--ease),
-    color var(--dur-fast) var(--ease);
+    border-color var(--dur) var(--ease),
+    color var(--dur) var(--ease),
+    transform var(--dur) var(--ease);
+}
+
+/* Свечение по контуру: появляется под кнопкой и чуть расходится наружу.
+   Заливка кнопки при наведении не меняется — меняется только ореол. */
+.arrowlink::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  box-shadow: 0 0 0 0 transparent;
+  opacity: 0;
+  transition:
+    opacity var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
 }
 
 .arrowlink__icon {
   transition: transform var(--dur) var(--ease);
 }
 
-.arrowlink:hover {
-  border-color: var(--line-accent);
-  background: var(--brand-deep-soft);
+.arrowlink:hover,
+.arrowlink:focus-visible {
+  border-color: var(--btn);
+  color: var(--btn-ink);
 }
 
-.arrowlink:hover .arrowlink__icon {
-  transform: translate(3px, -3px);
+.arrowlink:hover::before,
+.arrowlink:focus-visible::before {
+  transform: translateY(0);
+}
+
+.arrowlink:hover .arrowlink__icon,
+.arrowlink:focus-visible .arrowlink__icon {
+  transform: translate(4px, -4px);
 }
 
 /* Главное действие: брендовый зелёный, а не белая плашка — на почти чёрном
-   фоне белая кнопка перетягивает на себя весь кадр. */
+   фоне белая кнопка перетягивает на себя весь кадр.
+   Заливка у неё уже есть, поэтому наведение даёт только ореол. */
 .arrowlink--solid {
   background: var(--btn);
   color: var(--btn-ink);
   border-color: var(--btn);
   font-weight: 600;
+  transition:
+    border-color var(--dur) var(--ease),
+    box-shadow var(--dur) var(--ease);
 }
 
-.arrowlink--solid:hover {
-  background: var(--btn-hover);
-  border-color: var(--btn-hover);
+.arrowlink--solid::before {
+  display: none;
+}
+
+.arrowlink--solid:hover,
+.arrowlink--solid:focus-visible {
+  border-color: var(--btn);
   color: var(--btn-ink);
+  box-shadow: 0 0 22px -4px var(--btn);
 }
 
 .arrowlink--ghost {
   border-color: transparent;
   padding-inline: 0;
+  overflow: visible;
 }
 
-.arrowlink--ghost:hover {
-  background: transparent;
+.arrowlink--ghost::before {
+  display: none;
+}
+
+.arrowlink--ghost:hover,
+.arrowlink--ghost:focus-visible {
+  border-color: transparent;
   color: var(--accent);
+  transform: none;
 }
 
 /* Карточка: подсветка краёв и тонкий сдвиг — без масштабирования и свечения. */

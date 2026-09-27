@@ -20,7 +20,10 @@ const SOURCES = [
     id: 'pos',
     // Область заставки на снимке: она идёт текстурой на дисплей 3D-модели,
     // поэтому экран в сцене выглядит ровно так же, как на фотографии.
-    screen: { left: 74, top: 66, width: 872, height: 614 },
+    // Кадр подрезан по фактической кромке матрицы: слева в него попадало
+    // 12 пикселей тёмной рамки, справа 6, снизу 2 — на модели это читалось
+    // пустым зазором между рамкой и картинкой.
+    screen: { left: 86, top: 66, width: 854, height: 612 },
   },
   {
     svg: 'касса самообслуживания.svg',
@@ -225,7 +228,7 @@ async function process({ svg, id, screen }) {
       .clone()
       .extract(screen)
       // Логотип на заставке набран точками: на q88 они замыливались в кашу.
-      .webp({ quality: 96, effort: 6, smartSubsample: false })
+      .webp({ quality: 100, effort: 6, smartSubsample: false })
       .toFile(join(OUT, file));
     meta.files.screen = { file, width: info.width, height: info.height, kb: +(info.size / 1024).toFixed(1) };
   }

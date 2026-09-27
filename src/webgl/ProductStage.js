@@ -4,7 +4,6 @@ import {
   Group,
   Mesh,
   ShadowMaterial,
-  PCFShadowMap,
   PerspectiveCamera,
   PlaneGeometry,
   SRGBColorSpace,
@@ -23,6 +22,7 @@ import {
   createScreenMaterial,
 } from './studio.js';
 import { createScreenTexture, createWordmarkTexture } from './screens.js';
+import { onTick } from '../lib/scroll.js';
 
 /**
  * Сцена продуктовой истории.
@@ -39,7 +39,6 @@ import { createScreenTexture, createWordmarkTexture } from './screens.js';
  * Сознательно без React-обвязки: скролл не должен вызывать перерисовку дерева.
  */
 
-const easeInOut = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 const lerp = (a, b, t) => a + (b - a) * t;
 const clamp = (v, min, max) => Math.min(max, Math.max(min, v));
 
@@ -84,7 +83,7 @@ export class ProductStage {
    *   так повторное монтирование (в том числе двойное в StrictMode) всегда
    *   получает чистый WebGL-контекст, а не чужой уже освобождённый.
    */
-  constructor(host, { products, lite = false }) {
+  constructor(host, { products, lite = false, calm = false }) {
     this.host = host;
     this.canvas = document.createElement('canvas');
     this.canvas.className = 'story__canvasel';
@@ -93,8 +92,11 @@ export class ProductStage {
 
     this.products = products;
     this.lite = lite;
+    // «Спокойный» режим: без покачивания и параллакса, движение только от прокрутки.
+    this.calm = calm;
 
     this.progress = 0;
+    this.samples = [];
     this.pointer = new Vector2(0, 0);
     this.pointerTarget = new Vector2(0, 0);
     this.hint = null;
@@ -122,13 +124,21 @@ export class ProductStage {
       alpha: false,
       powerPreference: 'high-performance',
     });
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, this.lite ? 1.25 : 1.6));
+    // Стартуем осторожно и поднимаем разрешение только если машина тянет:
+    // лучше добавить чёткости через секунду, чем сразу отдать рваный кадр.
+    // Выше единицы не поднимаемся никогда. Материалы плоские, лишний пиксель
+    // на плотном экране ничего не добавляет глазу, а стоит вчетверо дороже:
+    // ровно так держит себя эталон, у которого плотность всегда ровно 1.
+    this.pixelRatioSteps = this.lite ? [0.7, 0.85, 1] : [0.8, 0.9, 1];
+    this.qualityStep = 1;
+    this.#applyPixelRatio();
     this.renderer.outputColorSpace = SRGBColorSpace;
     this.renderer.toneMapping = ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.0;
     // На телефоне тени — самая дорогая часть кадра, а выигрыш наименее заметен.
-    this.renderer.shadowMap.enabled = !this.lite;
-    this.renderer.shadowMap.type = PCFShadowMap;
+    // Источников света в сцене нет, отбрасывать тень некому: карту теней
+    // держим выключенной, иначе каждый кадр проходит лишнюю ветку конвейера.
+    this.renderer.shadowMap.enabled = false;
 
     this.scene = new Scene();
     this.camera = new PerspectiveCamera(30, 1, 0.05, 60);
@@ -450,6 +460,11 @@ export class ProductStage {
     this.progress = clamp(value, 0, 1);
   }
 
+  /**
+   * Поворот от курсора работает и в спокойном режиме: это отклик на действие
+   * пользователя, а не самостоятельное движение. Настройка «меньше движения»
+   * гасит только то, что шевелится само (см. `idle`).
+   */
   setPointer(x, y) {
     this.pointerTarget.set(clamp(x, -1, 1), clamp(y, -1, 1));
   }
@@ -489,24 +504,69 @@ export class ProductStage {
     this.render();
   }
 
+  /**
+   * Своего цикла у сцены нет: кадр ей приносит общий тикер страницы. Так
+   * инерция прокрутки, текстовый слой и рендер считаются в одном колбэке,
+   * от одной отметки времени и в гарантированном порядке.
+   */
   start() {
     if (this.running) return;
     this.running = true;
-    this.last = performance.now();
-    const loop = (now) => {
+    this.unsubscribe = onTick((delta) => {
       if (!this.running) return;
-      this.frameId = requestAnimationFrame(loop);
-      const delta = Math.min((now - this.last) / 1000, 0.1);
-      this.last = now;
       this.update(delta);
       this.render();
-    };
-    this.frameId = requestAnimationFrame(loop);
+      this.#watchFrameRate(delta);
+    });
   }
 
   stop() {
     this.running = false;
-    if (this.frameId) cancelAnimationFrame(this.frameId);
+    this.unsubscribe?.();
+    this.unsubscribe = null;
+  }
+
+  /** Разрешение по текущей ступени качества, но не выше плотности экрана. */
+  #applyPixelRatio() {
+    const step = this.pixelRatioSteps[this.qualityStep];
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, step));
+  }
+
+  /**
+   * Самонастройка качества по реальной частоте кадров.
+   *
+   * Сайт должен идти на любой машине, поэтому качество не фиксировано.
+   * Меряем медиану времени кадра за 60 кадров и двигаемся по ступеням
+   * разрешения: медленно — вниз, с запасом быстро — вверх.
+   *
+   * Медиана, а не среднее: один тяжёлый кадр на загрузке текстур не должен
+   * ронять качество на всю сессию. Шаг вверх требует большего запаса, чем шаг
+   * вниз, иначе на границе ступени картинка начала бы мигать туда-сюда.
+   */
+  #watchFrameRate(delta) {
+    if (delta <= 0) return;
+
+    this.samples.push(delta);
+    if (this.samples.length < 60) return;
+
+    const sorted = this.samples.slice().sort((a, b) => a - b);
+    const median = sorted[sorted.length >> 1];
+    this.samples.length = 0;
+
+    if (median > 1 / 50 && this.qualityStep > 0) {
+      this.qualityStep -= 1;
+      // Тени — самое дорогое после разрешения, на нижней ступени их нет.
+      if (this.qualityStep === 0) this.lite = true;
+      this.#applyPixelRatio();
+      this.resize();
+      return;
+    }
+
+    if (median < 1 / 58 && this.qualityStep < this.pixelRatioSteps.length - 1) {
+      this.qualityStep += 1;
+      this.#applyPixelRatio();
+      this.resize();
+    }
   }
 
   /* ─── Кадр ──────────────────────────────────────────────────────────────── */
@@ -519,8 +579,11 @@ export class ProductStage {
     const follow = 1 - Math.exp(-delta * 3.2);
     this.pointer.lerp(this.pointerTarget, follow);
 
+    // Сглаживание задаёт переход целиком (director.js), а не каждый отрезок:
+    // переход часто идёт через промежуточный кадр (передача плана), и при
+    // сглаживании по отрезкам движение замирало бы на каждой его границе.
     const { before, after, t } = this.#segment(this.progress);
-    const eased = easeInOut(t);
+    const eased = t;
 
     // Подсказка героя: продукт, на кнопку которого навели, выходит вперёд,
     // остальные отступают в глубину — это и есть «выбор продукта» до клика.
@@ -564,7 +627,7 @@ export class ProductStage {
 
     // Доля кадра → расстояние до камеры. Приближение получается доллингом,
     // геометрия при этом не масштабируется.
-    const fit = clamp(s.fit * this.layout.fitScale * (1 + hint * 0.25 - otherHint * 0.06), 0.04, 1.4);
+    const fit = clamp(s.fit * this.layout.fitScale * (1 + hint * 0.1 - otherHint * 0.06), 0.04, 1.4);
     const distance = item.height / (2 * fit * this.tanHalfFov);
     const viewHeight = 2 * this.tanHalfFov * distance;
     const viewWidth = viewHeight * this.camera.aspect;
@@ -577,16 +640,22 @@ export class ProductStage {
       this.frameHeight = viewHeight;
     }
 
+    // Подсвеченный продукт выходит вперёд и уезжает влево, второй уходит туда
+    // же — так пара не расползается и не наезжает друг на друга. Сдвиг мелкий:
+    // слева стоит текст героя, и на прежней десятой доле кадра машина его
+    // перекрывала.
     const x =
       (s.x * this.layout.xScale + s.xSpread) * viewWidth * 0.5 -
-      hint * viewWidth * 0.1 -
-      otherHint * viewWidth * 0.03;
+      hint * viewWidth * 0.045 -
+      otherHint * viewWidth * 0.05;
     const y = s.y * viewHeight * 0.5;
 
     root.position.set(x, y, this.camera.position.z - distance);
 
     // Угол = база от прокрутки + небольшое живое смещение от курсора.
-    const idle = Math.sin(this.time * 0.4 + (item.product.index === '01' ? 0 : 1.7)) * 0.012;
+    const idle = this.calm
+      ? 0
+      : Math.sin(this.time * 0.4 + (item.product.index === '01' ? 0 : 1.7)) * 0.012;
     pivot.rotation.y = s.yaw + this.pointer.x * POINTER_YAW + idle;
     pivot.rotation.x = s.pitch - this.pointer.y * POINTER_PITCH;
 

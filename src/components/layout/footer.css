@@ -103,3 +103,18 @@
   width: 100%;
   height: auto;
 }
+
+/* Переключатель режима движения: тихая служебная ссылка, а не кнопка-акцент. */
+.footer__motion {
+  color: var(--text-faint);
+  font-size: var(--micro);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-bottom: 1px solid transparent;
+  transition: color var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+
+.footer__motion:hover {
+  color: var(--text);
+  border-bottom-color: var(--line-strong);
+}

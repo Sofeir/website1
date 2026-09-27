@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { products, storyChapters } from '../../data/products.js';
-import { prefersReducedMotion, scrollTo } from '../../lib/scroll.js';
+import { onTick, prefersReducedMotion } from '../../lib/scroll.js';
+import { buildStations, createDirector } from './director.js';
 import StoryFallback from './StoryFallback.jsx';
 import './story.css';
 
@@ -30,12 +31,15 @@ export default function ProductStory() {
   const markRefs = useRef([]);
   const stageRef = useRef(null);
   const timelineRef = useRef(null);
+  const directorRef = useRef(null);
 
+  // Режим «меньше движения» больше не отменяет сцену: он убирает собственное
+  // движение (покачивание, параллакс курсора, инерцию прокрутки), а сама
+  // история остаётся — ею управляет пользователь колесом, а не таймер.
   const reduced = prefersReducedMotion();
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
-    if (reduced) return undefined;
-
     const wrap = wrapRef.current;
     const canvas = canvasRef.current;
     if (!wrap || !canvas) return undefined;
@@ -43,7 +47,7 @@ export default function ProductStory() {
     const lite = window.matchMedia('(max-width: 820px)').matches;
 
     let stage = null;
-    let frame = 0;
+    let unsubscribe = null;
     let disposed = false;
     let visible = true;
 
@@ -100,25 +104,41 @@ export default function ProductStory() {
       }
     };
 
-    const tick = () => {
-      frame = requestAnimationFrame(tick);
-      if (!visible) return;
-      const rect = wrap.getBoundingClientRect();
-      const total = Math.max(wrap.offsetHeight - window.innerHeight, 1);
-      const progress = clamp(-rect.top / total, 0, 1);
-      stage?.setProgress(progress);
-      paint(progress);
+    // Геометрия секции и окна читается один раз и обновляется по resize.
+    // Раньше каждый кадр дёргал getBoundingClientRect и offsetHeight — два
+    // синхронных чтения вёрстки на кадр, 240 обращений в секунду. Ни одно из
+    // этих чисел между кадрами не меняется, а первая же правка, которая
+    // тронет вёрстку в кадре, превратила бы их в принудительный пересчёт.
+    const box = { top: 0, total: 1, width: 1, height: 1 };
+
+    const measure = () => {
+      box.top = wrap.offsetTop;
+      box.total = Math.max(wrap.offsetHeight - window.innerHeight, 1);
+      box.width = window.innerWidth;
+      box.height = window.innerHeight;
     };
 
+    // Прогресс сцене теперь выдаёт режиссёр (см. director.js), а не scrollY:
+    // колесо задаёт направление, переход играет сам фиксированное время.
+    let director = null;
+    const tick = (delta) => {
+      director?.tick(delta);
+    };
+
+    // Холст растянут на всё окно, поэтому его рамка — это само окно: замер
+    // из обработчика мыши не нужен, а он шёл на каждое движение курсора.
     const onPointerMove = (event) => {
-      const rect = canvas.getBoundingClientRect();
       stage?.setPointer(
-        ((event.clientX - rect.left) / rect.width) * 2 - 1,
-        -(((event.clientY - rect.top) / rect.height) * 2 - 1)
+        (event.clientX / box.width) * 2 - 1,
+        -((event.clientY / box.height) * 2 - 1)
       );
     };
 
-    const onResize = () => stage?.resize();
+    const onResize = () => {
+      measure();
+      stage?.resize();
+      director?.resync();
+    };
 
     // Сцена считается только пока она в кадре: ниже по странице GPU свободен.
     const observer = new IntersectionObserver(
@@ -135,7 +155,7 @@ export default function ProductStory() {
     import('../../webgl/ProductStage.js')
       .then(async ({ ProductStage }) => {
         if (disposed) return;
-        stage = new ProductStage(canvas, { products, lite });
+        stage = new ProductStage(canvas, { products, lite, calm: reduced });
         stageRef.current = stage;
         // Ручка для отладки сцены в дев-сборке: кадр удобнее проверять из консоли.
         if (import.meta.env.DEV) window.__stage = stage;
@@ -151,15 +171,32 @@ export default function ProductStory() {
         stage.resize();
         stage.start();
         observer.observe(wrap);
+        measure();
+        director = createDirector({
+          stations: buildStations(timelineRef.current),
+          box,
+          onProgress: (progress) => {
+            stage?.setProgress(progress);
+            if (visible) paint(progress);
+          },
+        });
+        directorRef.current = director;
+        if (import.meta.env.DEV) window.__director = director;
         window.addEventListener('pointermove', onPointerMove, { passive: true });
         window.addEventListener('resize', onResize);
-        frame = requestAnimationFrame(tick);
+        unsubscribe = onTick(tick);
       })
-      .catch((error) => console.error('[asoft] сцена не запустилась', error));
+      .catch((error) => {
+        // Нет WebGL или сцена не поднялась — показываем ту же историю вёрсткой.
+        console.error('[asoft] сцена не запустилась', error);
+        setFailed(true);
+      });
 
     return () => {
       disposed = true;
-      cancelAnimationFrame(frame);
+      unsubscribe?.();
+      director?.dispose();
+      directorRef.current = null;
       observer.disconnect();
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('resize', onResize);
@@ -168,18 +205,15 @@ export default function ProductStory() {
     };
   }, [reduced]);
 
-  /** Выбор продукта в герое — переход к его главе внутри той же сцены. */
+  /** Выбор продукта в герое — переход к его главе одной анимацией. */
   const goToProduct = (productId) => {
-    const wrap = wrapRef.current;
-    const timeline = timelineRef.current;
-    if (!wrap || !timeline) return;
-    const mark = timeline.chapters.find((chapter) => chapter.productId === productId);
-    if (!mark) return;
-    const total = wrap.offsetHeight - window.innerHeight;
-    scrollTo(wrap.offsetTop + total * mark.at, { duration: 1.6 });
+    const director = directorRef.current;
+    if (!director) return;
+    const index = director.stationOf(productId);
+    if (index >= 0) director.goTo(index);
   };
 
-  if (reduced) return <StoryFallback />;
+  if (failed) return <StoryFallback />;
 
   return (
     <section

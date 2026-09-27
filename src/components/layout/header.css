@@ -104,6 +104,9 @@
 }
 
 .header__cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
   display: none;
   padding: 11px 24px;
   border: 1px solid var(--btn);
@@ -113,14 +116,17 @@
   font-size: 0.96875rem;
   font-weight: 600;
   letter-spacing: 0.005em;
-  transition: border-color var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease),
-    color var(--dur-fast) var(--ease);
+  transition: transform var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
 }
 
-.header__cta:hover {
-  border-color: var(--btn-hover);
-  background: var(--btn-hover);
+/* Блик пробегает по кнопке слева направо — вместо осветления фона. */
+
+/* Наведение — только ореол вокруг кнопки: ни заливки, ни сдвига. */
+.header__cta:hover,
+.header__cta:focus-visible {
+  box-shadow: 0 0 22px -4px var(--btn);
 }
+
 
 @media (min-width: 700px) {
   .header__cta {

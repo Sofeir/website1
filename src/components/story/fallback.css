@@ -59,3 +59,38 @@
 .flow__index {
   color: var(--text-ghost);
 }
+
+/* ─── Переключатель режима движения ───────────────────────────────────────── */
+
+/* Версия без движения — не тупик: отсюда всегда можно включить полную сцену. */
+.flow__motion {
+  display: grid;
+  gap: 16px;
+  justify-items: start;
+  margin-top: clamp(28px, 4vh, 44px);
+  padding: clamp(20px, 2.4vw, 28px);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  background: var(--surface);
+  max-width: 62ch;
+}
+
+.flow__motionnote {
+  color: var(--text-dim);
+  font-size: var(--small);
+  line-height: 1.6;
+}
+
+.flow__motionbtn {
+  padding: 13px 26px;
+  border-radius: var(--r-pill);
+  background: var(--btn);
+  color: var(--btn-ink);
+  font-size: 1rem;
+  font-weight: 600;
+  transition: background var(--dur-fast) var(--ease);
+}
+
+.flow__motionbtn:hover {
+  background: var(--btn-hover);
+}

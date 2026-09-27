@@ -1,9 +1,14 @@
 import { Link } from 'react-router-dom';
 import { site } from '../../data/site.js';
+import { prefersReducedMotion, setMotionPreference } from '../../lib/scroll.js';
 import Emblem from '../ui/Emblem.jsx';
 import './footer.css';
 
 export default function Footer() {
+  // Режим движения переключается вручную: системная настройка приходит и от
+  // энергосбережения браузера, а не только от человека.
+  const reduced = prefersReducedMotion();
+
   return (
     <footer className="footer">
       <div className="shell footer__inner">
@@ -74,6 +79,14 @@ export default function Footer() {
 
       <div className="shell footer__bottom">
         <p className="mono">© {new Date().getFullYear()} {site.name}</p>
+        <button
+          type="button"
+          className="mono footer__motion"
+          data-cursor="link"
+          onClick={() => setMotionPreference(reduced ? 'full' : 'reduced')}
+        >
+          {reduced ? 'Включить анимацию' : 'Отключить анимацию'}
+        </button>
         {site.contacts.placeholder && (
           <p className="mono footer__placeholder">
             Контакты указаны как примерные и заменяются в src/data/site.js
