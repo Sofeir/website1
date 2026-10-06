@@ -1,5 +1,9 @@
 param()
 
+# Автокоммит и push в main после каждого ответа Claude.
+# Путь к репозиторию берём от самого скрипта ($PSScriptRoot), а не из вывода git:
+# Windows PowerShell 5.1 портит кириллицу в выводе git ("Рабочий стол"), и Set-Location падал.
+
 $ErrorActionPreference = 'Stop'
 
 try {
@@ -13,12 +17,12 @@ try {
         exit 0
     }
 
-    $repoRoot = git rev-parse --show-toplevel 2>$null
-    if (-not $repoRoot) {
+    $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
+    Set-Location -LiteralPath $repoRoot
+
+    if (-not (Test-Path -LiteralPath (Join-Path $repoRoot '.git'))) {
         exit 0
     }
-
-    Set-Location $repoRoot
 
     $statusOutput = git status --porcelain
     if (-not $statusOutput) {
@@ -26,17 +30,17 @@ try {
     }
 
     git add -A
-    if (-not $?) { exit 1 }
+    if ($LASTEXITCODE -ne 0) { exit 1 }
 
     $commitMessage = "auto: session changes $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')"
     git commit -m $commitMessage
-    if (-not $?) { exit 1 }
+    if ($LASTEXITCODE -ne 0) { exit 1 }
 
     git push origin main
-    if (-not $?) { exit 1 }
+    if ($LASTEXITCODE -ne 0) { exit 1 }
 
     exit 0
 } catch {
-    Write-Error $_.Exception.Message
+    [Console]::Error.WriteLine($_.Exception.Message)
     exit 1
 }

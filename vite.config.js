@@ -2,8 +2,10 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  // GitHub Pages отдаёт проект по адресу /<репозиторий>/.
-  base: '/',
+  // GitHub Pages отдаёт проект по адресу /<репозиторий>/, поэтому workflow
+  // (.github/workflows/pages.yml) задаёт VITE_BASE=/website1/. Локально и на
+  // собственном домене сайт живёт в корне.
+  base: process.env.VITE_BASE || '/',
   plugins: [react()],
   server: { port: 5178 },
   build: {

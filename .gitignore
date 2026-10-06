@@ -5,3 +5,8 @@ dist
 
 # Word lock-файлы
 ~$*
+
+*.blend1
+
+# Word-документы с референсами
+*.docx

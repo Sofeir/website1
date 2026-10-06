@@ -1,8 +1,9 @@
 import {
-  ACESFilmicToneMapping,
   Box3,
   Group,
   Mesh,
+  MeshBasicMaterial,
+  NoToneMapping,
   ShadowMaterial,
   PerspectiveCamera,
   PlaneGeometry,
@@ -14,14 +15,8 @@ import {
   WebGLRenderer,
 } from 'three';
 import { backdropFragment, backdropVertex } from './shaders.js';
-import { BUILDERS } from './models.js';
-import {
-  createEnvironment,
-  createLights,
-  createMaterials,
-  createScreenMaterial,
-} from './studio.js';
-import { createScreenTexture, createWordmarkTexture } from './screens.js';
+import { loadProductModel, loadStudioEnvironment } from './glbModels.js';
+import { asset } from '../lib/asset.js';
 import { onTick } from '../lib/scroll.js';
 
 /**
@@ -77,6 +72,9 @@ const state = (over = {}) => ({
 
 const FIELDS = Object.keys(state());
 
+/** Яркость студийного окружения: 1 — как в Blender, ниже — глубже чёрный корпуса. */
+const ENV_INTENSITY = 0.6;
+
 export class ProductStage {
   /**
    * @param host контейнер сцены; собственный canvas движок создаёт сам —
@@ -124,17 +122,17 @@ export class ProductStage {
       alpha: false,
       powerPreference: 'high-performance',
     });
-    // Стартуем осторожно и поднимаем разрешение только если машина тянет:
-    // лучше добавить чёткости через секунду, чем сразу отдать рваный кадр.
-    // Выше единицы не поднимаемся никогда. Материалы плоские, лишний пиксель
-    // на плотном экране ничего не добавляет глазу, а стоит вчетверо дороже:
-    // ровно так держит себя эталон, у которого плотность всегда ровно 1.
-    this.pixelRatioSteps = this.lite ? [0.7, 0.85, 1] : [0.8, 0.9, 1];
-    this.qualityStep = 1;
+    // Рендерим в родной плотности экрана (до 2×): ниже неё картинку растягивает
+    // браузер, и мелкие фаски, надписи и экран «сыпятся» пикселями. Слабая
+    // машина сама опустится по ступеням (см. #watchFrameRate), но стартуем
+    // с полной чёткости, а не с урезанной.
+    this.pixelRatioSteps = [1, 1.5, 2];
+    this.qualityStep = this.pixelRatioSteps.length - 1;
     this.#applyPixelRatio();
     this.renderer.outputColorSpace = SRGBColorSpace;
-    this.renderer.toneMapping = ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.0;
+    // Как «Standard» во View Transform у Blender: цвета материалов без
+    // тонмаппинга, иначе ACES сдвигает тон корпуса относительно вьюпорта.
+    this.renderer.toneMapping = NoToneMapping;
     // На телефоне тени — самая дорогая часть кадра, а выигрыш наименее заметен.
     // Источников света в сцене нет, отбрасывать тень некому: карту теней
     // держим выключенной, иначе каждый кадр проходит лишнюю ветку конвейера.
@@ -144,20 +142,21 @@ export class ProductStage {
     this.camera = new PerspectiveCamera(30, 1, 0.05, 60);
     this.camera.position.set(0, 0, 3);
 
-    // Глянец корпуса держится на отражении студии — без окружения останется
-    // только диффузная засветка, и блика по фаскам не будет.
-    this.environment = createEnvironment(this.renderer);
+    // Свет — только студийное HDRI, как в Material Preview у Blender:
+    // форму корпуса и блик на фасках даёт отражение, а не источники.
+    // HDRI обесцвечено: цветное небо и сад давали корпусу рыжий оттенок.
+    // Яркость приглушена, чтобы отражение не выбеливало чёрный пластик.
+    this.environment = await loadStudioEnvironment(this.renderer, asset('models/studio-neutral.hdr'));
     this.scene.environment = this.environment;
-    this.lights = createLights(this.scene);
+    this.scene.environmentIntensity = ENV_INTENSITY;
 
     this.#buildBackdrop();
 
     const maxAnisotropy = this.renderer.capabilities.getMaxAnisotropy();
-    const wordmarkTexture = await createWordmarkTexture();
 
     for (const [index, product] of this.products.entries()) {
-      const screenTexture = await createScreenTexture(product.scene.screen, maxAnisotropy);
-      this.#addProduct(product, screenTexture, wordmarkTexture);
+      const loaded = await loadProductModel(product.scene.glb, maxAnisotropy);
+      this.#addProduct(product, loaded);
       if (index === 0) {
         this.ready = true;
         this.resize();
@@ -188,16 +187,7 @@ export class ProductStage {
     this.scene.add(this.backdrop);
   }
 
-  #addProduct(product, screenTexture, wordmarkTexture) {
-    // Свой набор материалов на продукт: прозрачностью при переходе управляем
-    // независимо, иначе уходящий корпус утащил бы за собой второй.
-    const materials = createMaterials();
-    const screenMaterial = createScreenMaterial(screenTexture);
-    const wordmarkMaterial = createScreenMaterial(wordmarkTexture.clone());
-    wordmarkMaterial.transparent = true;
-
-    const build = BUILDERS[product.scene.model];
-    const { root: model } = build(materials, screenMaterial, wordmarkMaterial);
+  #addProduct(product, { root: model, shellMaterials, screenMaterial, wordmarkMaterial }) {
 
     // Модель строится «стоящей на полу»; для кадра её удобнее центрировать.
     const bounds = new Box3().setFromObject(model);
@@ -207,6 +197,17 @@ export class ProductStage {
 
     const pivot = new Group(); // сюда приходит вращение — корпус и экран заодно
     pivot.add(model);
+
+    // Пока машина полупрозрачна, сквозь корпус просвечивали бы её же дальние
+    // детали. Невидимая копия пишет только глубину, и при наплыве видна лишь
+    // ближняя поверхность: модель гаснет целиком, как один предмет.
+    const depthMaterial = new MeshBasicMaterial({ colorWrite: false });
+    const depthModel = model.clone();
+    depthModel.traverse((node) => {
+      if (node.isMesh) node.material = depthMaterial;
+    });
+    depthModel.visible = false;
+    pivot.add(depthModel);
 
     // Оборудование стоит на собственной тени, а не на подиуме: плоскость
     // невидима и ловит только тень, поэтому под машиной нет чужеродного диска.
@@ -228,8 +229,10 @@ export class ProductStage {
       root,
       pivot,
       model,
+      depthModel,
+      depthMaterial,
       floor,
-      shellMaterials: Object.values(materials),
+      shellMaterials,
       screenMaterial,
       wordmarkMaterial,
       height: size.y,
@@ -675,7 +678,9 @@ export class ProductStage {
     }
     item.screenMaterial.opacity = opacity;
     item.screenMaterial.transparent = transparent;
-    item.wordmarkMaterial.opacity = opacity * 0.85;
+    item.depthModel.visible = transparent;
+    item.wordmarkMaterial.opacity = opacity;
+    item.wordmarkMaterial.transparent = transparent;
     item.floor.material.opacity = opacity * 0.3;
 
     root.visible = opacity > 0.01;
@@ -725,6 +730,7 @@ export class ProductStage {
         material.map?.dispose();
         material.dispose();
       });
+      item.depthMaterial.dispose();
       item.floor.geometry.dispose();
       item.floor.material.dispose();
     }

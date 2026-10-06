@@ -61,7 +61,7 @@ const GLOSS = (() => {
  * Плоские грани при этом не осветляются вовсе — ни верхние, ни лицевые.
  * Подсвечена только фаска, и она даёт рёбра, по которым форма и читается.
  */
-function relief(geometry) {
+export function relief(geometry) {
   const normal = geometry.attributes.normal;
   const count = normal.count;
   const colors = new Float32Array(count * 3);

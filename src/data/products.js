@@ -19,8 +19,8 @@ export const products = [
       'Рабочее место кассира: сенсорный моноблок, кассовое ПО и обмен с учётной системой.',
 
     scene: {
-      /** Какую модель собирает движок сцены (см. webgl/models.js). */
-      model: 'pos',
+      /** 3D-модель из Blender (blender/asoft-devices.blend), заставка экрана вшита в файл. */
+      glb: asset('models/pos.glb'),
       /** Заставка дисплея — вырезана из студийного снимка этой же машины. */
       screen: asset('products/pos-screen.webp'),
       /** Изображение того же оборудования для секций вне 3D-сцены. */
@@ -126,7 +126,7 @@ export const products = [
       'Киоск, который покупатель проходит сам: сканирование, оплата, чек — без участия кассира.',
 
     scene: {
-      model: 'self-checkout',
+      glb: asset('models/self-checkout.glb'),
       screen: asset('products/self-checkout-screen.webp'),
       still: asset('products/self-checkout.webp'),
       accent: '#2fbf94',
